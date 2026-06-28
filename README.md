@@ -98,19 +98,42 @@ Implementation details remain intentionally flexible.
 ```
 career-os/
 
-docs/
-.github/
-
-backend/
-frontend/
-knowledge/
-resume/
+career_os/
 tests/
 
+.gitignore
+pyproject.toml
 README.md
 ```
 
-The repository structure will evolve over time as implementation progresses.
+Local architecture notes may exist during development, but only `README.md` is published as Markdown in the GitHub repository.
+
+
+---
+
+## Local Development
+
+Career OS currently uses only the Python standard library.
+
+Run the test suite:
+
+```bash
+python -m unittest discover -s tests
+```
+
+Initialize a local database:
+
+```bash
+python -m career_os.cli --db career-os-data/career-os.sqlite init
+```
+
+Add evidence and a knowledge item:
+
+```bash
+python -m career_os.cli --db career-os-data/career-os.sqlite add-evidence --kind user_confirmation --title "Confirmed project" --body "User confirmed this project is accurate."
+python -m career_os.cli --db career-os-data/career-os.sqlite add-knowledge --kind project --title "Career OS" --body "Built a local-first job application assistant."
+python -m career_os.cli --db career-os-data/career-os.sqlite list-knowledge
+```
 
 ---
 
@@ -118,9 +141,9 @@ The repository structure will evolve over time as implementation progresses.
 
 Current Phase:
 
-Architecture & Design
+Milestone 2: Local Knowledge Persistence
 
-No production code should be written until the initial architecture review is complete.
+The architecture baseline is complete. The first implementation milestone provides a local SQLite-backed foundation for user profile, Knowledge Base items, and supporting evidence.
 
 ---
 

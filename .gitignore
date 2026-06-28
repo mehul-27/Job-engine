@@ -1,0 +1,14 @@
+# Keep local planning docs out of GitHub. Root README.md is the only tracked Markdown file.
+*.md
+!/README.md
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+
+# Local runtime data
+*.sqlite
+*.sqlite3
+career-os-data/
