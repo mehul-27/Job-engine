@@ -1,7 +1,8 @@
-"""SQLite persistence for the first local Career OS milestone."""
+"""SQLite persistence for Career OS local milestones."""
 
 from __future__ import annotations
 
+import hashlib
 import sqlite3
 from collections.abc import Iterable
 from contextlib import closing
@@ -9,9 +10,9 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from .domain import Evidence, EvidenceKind, KnowledgeItem, KnowledgeItemKind, UserProfile
+from .domain import Evidence, EvidenceKind, KnowledgeItem, KnowledgeItemKind, ResumeRecord, UserProfile
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def utc_now_sql() -> str:
@@ -19,7 +20,7 @@ def utc_now_sql() -> str:
 
 
 class CareerStore:
-    """Small SQLite store for user profile, knowledge items, and evidence."""
+    """Small SQLite store for user profile, knowledge items, evidence, and resumes."""
 
     def __init__(self, database_path: str | Path) -> None:
         self.database_path = Path(database_path)
@@ -77,6 +78,16 @@ class CareerStore:
                     PRIMARY KEY (knowledge_item_id, evidence_id),
                     FOREIGN KEY (knowledge_item_id) REFERENCES knowledge_item(id) ON DELETE CASCADE,
                     FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE
+                );
+
+                CREATE TABLE IF NOT EXISTS resume_record (
+                    id TEXT PRIMARY KEY,
+                    file_path TEXT NOT NULL,
+                    filename TEXT NOT NULL,
+                    checksum_sha256 TEXT NOT NULL,
+                    is_active INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL DEFAULT ({utc_now_sql()}),
+                    CHECK (is_active IN (0, 1))
                 );
 
                 INSERT OR IGNORE INTO schema_version (version) VALUES ({SCHEMA_VERSION});
@@ -161,6 +172,62 @@ class CareerStore:
             connection.commit()
         return self._evidence_from_row(row)
 
+    def register_resume(self, file_path: str | Path, *, make_active: bool = True, filename: str | None = None) -> ResumeRecord:
+        path = Path(file_path).expanduser().resolve()
+        if not path.is_file():
+            raise FileNotFoundError(f"resume file not found: {path}")
+        checksum = self._sha256(path)
+        display_name = filename or path.name
+        self._require_text(display_name, "filename")
+        resume_id = self._new_id("rs")
+        with closing(self.connect()) as connection:
+            if make_active:
+                connection.execute("UPDATE resume_record SET is_active = 0")
+            connection.execute(
+                """
+                INSERT INTO resume_record (id, file_path, filename, checksum_sha256, is_active)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (resume_id, str(path), display_name, checksum, 1 if make_active else 0),
+            )
+            row = connection.execute("SELECT * FROM resume_record WHERE id = ?", (resume_id,)).fetchone()
+            connection.commit()
+        return self._resume_from_row(row)
+
+    def list_resumes(self) -> list[ResumeRecord]:
+        with closing(self.connect()) as connection:
+            rows = connection.execute(
+                """
+                SELECT * FROM resume_record
+                ORDER BY is_active DESC, created_at DESC
+                """
+            ).fetchall()
+        return [self._resume_from_row(row) for row in rows]
+
+    def get_active_resume(self) -> ResumeRecord | None:
+        with closing(self.connect()) as connection:
+            row = connection.execute(
+                """
+                SELECT * FROM resume_record
+                WHERE is_active = 1
+                ORDER BY created_at DESC
+                LIMIT 1
+                """
+            ).fetchone()
+        return None if row is None else self._resume_from_row(row)
+
+    def set_active_resume(self, resume_id: str) -> ResumeRecord:
+        self._require_text(resume_id, "resume_id")
+        with closing(self.connect()) as connection:
+            row = connection.execute("SELECT * FROM resume_record WHERE id = ?", (resume_id,)).fetchone()
+            if row is None:
+                raise LookupError("resume was not found")
+            connection.execute("UPDATE resume_record SET is_active = 0")
+            connection.execute("UPDATE resume_record SET is_active = 1 WHERE id = ?", (resume_id,))
+            row = connection.execute("SELECT * FROM resume_record WHERE id = ?", (resume_id,)).fetchone()
+            connection.commit()
+        return self._resume_from_row(row)
+
     def list_knowledge_items(self) -> list[KnowledgeItem]:
         with closing(self.connect()) as connection:
             rows = connection.execute(
@@ -190,6 +257,14 @@ class CareerStore:
         return f"{prefix}_{uuid4().hex}"
 
     @staticmethod
+    def _sha256(path: Path) -> str:
+        digest = hashlib.sha256()
+        with path.open("rb") as file:
+            for block in iter(lambda: file.read(1024 * 1024), b""):
+                digest.update(block)
+        return digest.hexdigest()
+
+    @staticmethod
     def _require_text(value: str, field_name: str) -> None:
         if not isinstance(value, str) or not value.strip():
             raise ValueError(f"{field_name} is required")
@@ -217,3 +292,11 @@ class CareerStore:
         if row is None:
             raise LookupError("evidence was not found")
         return Evidence(**dict(row))
+
+    @staticmethod
+    def _resume_from_row(row: sqlite3.Row | None) -> ResumeRecord:
+        if row is None:
+            raise LookupError("resume was not found")
+        data: dict[str, Any] = dict(row)
+        data["is_active"] = bool(data["is_active"])
+        return ResumeRecord(**data)

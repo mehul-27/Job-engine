@@ -115,6 +115,14 @@ Local architecture notes may exist during development, but only `README.md` is p
 
 Career OS currently uses only the Python standard library.
 
+
+Run the local GUI:
+
+```bash
+python -m career_os.web
+```
+
+Open `http://127.0.0.1:8765` and register your resume file. Career OS stores the uploaded file unchanged and records filename, checksum, active flag, and timestamp.
 Run the test suite:
 
 ```bash
@@ -141,9 +149,9 @@ python -m career_os.cli --db career-os-data/career-os.sqlite list-knowledge
 
 Current Phase:
 
-Milestone 2: Local Knowledge Persistence
+Milestone 3: GUI + Resume Registry
 
-The architecture baseline is complete. The first implementation milestone provides a local SQLite-backed foundation for user profile, Knowledge Base items, and supporting evidence.
+The app now provides a local GUI for registering the active resume file as-is. Resume content is not parsed, rewritten, or tailored in V1.
 
 ---
 

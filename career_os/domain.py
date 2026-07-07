@@ -1,4 +1,4 @@
-"""Business domain types for the first Career OS persistence milestone."""
+"""Business domain types for the first Career OS persistence milestones."""
 
 from __future__ import annotations
 
@@ -48,4 +48,14 @@ class Evidence:
     kind: EvidenceKind
     title: str
     body: str
+    created_at: str
+
+
+@dataclass(frozen=True)
+class ResumeRecord:
+    id: str
+    file_path: str
+    filename: str
+    checksum_sha256: str
+    is_active: bool
     created_at: str
