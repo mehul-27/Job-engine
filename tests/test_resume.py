@@ -9,11 +9,11 @@ from unittest.mock import MagicMock, patch
 
 from career_os.ai import AIResult
 from career_os.resume import (
+    compile_latex,
     cover_letter_to_latex,
     generate_cover_letter,
     generate_tailored_resume,
     tailored_to_latex,
-    LaTeXCompiler,
 )
 
 
@@ -98,11 +98,10 @@ class TailoredToLatexTests(unittest.TestCase):
         self.assertIn("BS", tex)
 
 
-class LaTeXCompilerTests(unittest.TestCase):
+class CompileLatexTests(unittest.TestCase):
     def test_compile_fails_gracefully_without_pdflatex(self) -> None:
         with TemporaryDirectory() as tmp:
-            compiler = LaTeXCompiler(tmp)
-            result = compiler.compile(r"\documentclass{article}\begin{document}Hi\end{document}", stem="test")
+            result = compile_latex(r"\documentclass{article}\begin{document}Hi\end{document}", tmp, stem="test")
             self.assertIsNone(result)
 
 

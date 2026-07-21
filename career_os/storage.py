@@ -209,7 +209,7 @@ class CareerStore:
             )
             row = connection.execute("SELECT * FROM user_profile WHERE id = ?", (profile_id,)).fetchone()
             connection.commit()
-        return self._profile_from_row(row)
+        return _row_to(UserProfile, row, "user profile")
 
     def add_knowledge_item(self, *, kind: KnowledgeItemKind, title: str, body: str, evidence_ids: Iterable[str] = (), status: str = "draft") -> KnowledgeItem:
         self._require_text(kind, "kind")
@@ -223,7 +223,7 @@ class CareerStore:
                 connection.execute("INSERT INTO knowledge_item_evidence (knowledge_item_id, evidence_id) VALUES (?, ?)", (item_id, evidence_id))
             row = connection.execute("SELECT * FROM knowledge_item WHERE id = ?", (item_id,)).fetchone()
             connection.commit()
-        return self._knowledge_item_from_row(row)
+        return _row_to(KnowledgeItem, row, "knowledge item")
 
     def add_evidence(self, *, kind: EvidenceKind, title: str, body: str) -> Evidence:
         self._require_text(kind, "kind")
@@ -234,7 +234,7 @@ class CareerStore:
             connection.execute("INSERT INTO evidence (id, kind, title, body) VALUES (?, ?, ?, ?)", (evidence_id, kind, title, body))
             row = connection.execute("SELECT * FROM evidence WHERE id = ?", (evidence_id,)).fetchone()
             connection.commit()
-        return self._evidence_from_row(row)
+        return _row_to(Evidence, row, "evidence")
 
     def register_resume(self, file_path: str | Path, *, make_active: bool = True, filename: str | None = None) -> ResumeRecord:
         path = Path(file_path).expanduser().resolve()
@@ -250,7 +250,7 @@ class CareerStore:
             connection.execute("INSERT INTO resume_record (id, file_path, filename, checksum_sha256, is_active) VALUES (?, ?, ?, ?, ?)", (resume_id, str(path), display_name, checksum, 1 if make_active else 0))
             row = connection.execute("SELECT * FROM resume_record WHERE id = ?", (resume_id,)).fetchone()
             connection.commit()
-        return self._resume_from_row(row)
+        return _row_to(ResumeRecord, row, "resume", ["is_active"])
 
     def add_role_target(self, *, title: str, keywords: str, location: str | None, remote_preference: str, job_type: str | None, source_url: str) -> RoleTarget:
         self._require_text(title, "title")
@@ -269,17 +269,17 @@ class CareerStore:
             )
             row = connection.execute("SELECT * FROM role_target WHERE id = ?", (role_id,)).fetchone()
             connection.commit()
-        return self._role_from_row(row)
+        return _row_to(RoleTarget, row, "role target")
 
     def list_role_targets(self) -> list[RoleTarget]:
         with closing(self.connect()) as connection:
             rows = connection.execute("SELECT * FROM role_target ORDER BY created_at DESC, title ASC").fetchall()
-        return [self._role_from_row(row) for row in rows]
+        return [_row_to(RoleTarget, row, "role target") for row in rows]
 
     def get_role_target(self, role_id: str) -> RoleTarget:
         with closing(self.connect()) as connection:
             row = connection.execute("SELECT * FROM role_target WHERE id = ?", (role_id,)).fetchone()
-        return self._role_from_row(row)
+        return _row_to(RoleTarget, row, "role target")
 
     def save_discovered_opportunities(self, role_id: str, jobs: Iterable[DiscoveredOpportunity]) -> list[Opportunity]:
         saved: list[Opportunity] = []
@@ -301,24 +301,24 @@ class CareerStore:
                     (opportunity_id, role_id, job.source, job.title, job.company, job.url, job.location, job.description, content_hash),
                 )
                 row = connection.execute("SELECT * FROM opportunity WHERE content_hash = ?", (content_hash,)).fetchone()
-                saved.append(self._opportunity_from_row(row))
+                saved.append(_row_to(Opportunity, row, "opportunity"))
             connection.commit()
         return saved
 
     def list_opportunities(self) -> list[Opportunity]:
         with closing(self.connect()) as connection:
             rows = connection.execute("SELECT * FROM opportunity ORDER BY created_at DESC, title ASC").fetchall()
-        return [self._opportunity_from_row(row) for row in rows]
+        return [_row_to(Opportunity, row, "opportunity") for row in rows]
 
     def list_resumes(self) -> list[ResumeRecord]:
         with closing(self.connect()) as connection:
             rows = connection.execute("SELECT * FROM resume_record ORDER BY is_active DESC, created_at DESC").fetchall()
-        return [self._resume_from_row(row) for row in rows]
+        return [_row_to(ResumeRecord, row, "resume", ["is_active"]) for row in rows]
 
     def get_active_resume(self) -> ResumeRecord | None:
         with closing(self.connect()) as connection:
             row = connection.execute("SELECT * FROM resume_record WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1").fetchone()
-        return None if row is None else self._resume_from_row(row)
+        return None if row is None else _row_to(ResumeRecord, row, "resume", ["is_active"])
 
     def set_active_resume(self, resume_id: str) -> ResumeRecord:
         self._require_text(resume_id, "resume_id")
@@ -330,12 +330,12 @@ class CareerStore:
             connection.execute("UPDATE resume_record SET is_active = 1 WHERE id = ?", (resume_id,))
             row = connection.execute("SELECT * FROM resume_record WHERE id = ?", (resume_id,)).fetchone()
             connection.commit()
-        return self._resume_from_row(row)
+        return _row_to(ResumeRecord, row, "resume", ["is_active"])
 
     def list_knowledge_items(self) -> list[KnowledgeItem]:
         with closing(self.connect()) as connection:
             rows = connection.execute("SELECT * FROM knowledge_item ORDER BY created_at DESC, title ASC").fetchall()
-        return [self._knowledge_item_from_row(row) for row in rows]
+        return [_row_to(KnowledgeItem, row, "knowledge item") for row in rows]
 
     def list_evidence_for_item(self, knowledge_item_id: str) -> list[Evidence]:
         with closing(self.connect()) as connection:
@@ -348,7 +348,7 @@ class CareerStore:
                 """,
                 (knowledge_item_id,),
             ).fetchall()
-        return [self._evidence_from_row(row) for row in rows]
+        return [_row_to(Evidence, row, "evidence") for row in rows]
 
     def upsert_company(self, name: str, *, url: str | None = None, notes: str | None = None, is_blacklisted: bool = False) -> Company:
         company_id = self._new_id("co")
@@ -367,17 +367,17 @@ class CareerStore:
                 )
                 row = connection.execute("SELECT * FROM company WHERE id = ?", (company_id,)).fetchone()
             connection.commit()
-        return self._company_from_row(row)
+        return _row_to(Company, row, "company", ["is_blacklisted"])
 
     def list_companies(self) -> list[Company]:
         with closing(self.connect()) as connection:
             rows = connection.execute("SELECT * FROM company ORDER BY name ASC").fetchall()
-        return [self._company_from_row(row) for row in rows]
+        return [_row_to(Company, row, "company", ["is_blacklisted"]) for row in rows]
 
     def get_company_by_name(self, name: str) -> Company | None:
         with closing(self.connect()) as connection:
             row = connection.execute("SELECT * FROM company WHERE name = ?", (name,)).fetchone()
-        return None if row is None else self._company_from_row(row)
+        return None if row is None else _row_to(Company, row, "company", ["is_blacklisted"])
 
     def update_opportunity_status(self, opportunity_id: str, status: str) -> Opportunity:
         if status not in {"new", "saved", "skipped", "applying", "blacklisted"}:
@@ -391,14 +391,14 @@ class CareerStore:
             if row is None:
                 raise LookupError("opportunity not found")
             connection.commit()
-        return self._opportunity_from_row(row)
+        return _row_to(Opportunity, row, "opportunity")
 
     def get_opportunity(self, opportunity_id: str) -> Opportunity:
         with closing(self.connect()) as connection:
             row = connection.execute("SELECT * FROM opportunity WHERE id = ?", (opportunity_id,)).fetchone()
             if row is None:
                 raise LookupError("opportunity not found")
-        return self._opportunity_from_row(row)
+        return _row_to(Opportunity, row, "opportunity")
 
     def save_tailored_resume(self, *, opportunity_id: str, file_path: str, provenance: str, version: int = 1) -> TailoredResume:
         resume_id = self._new_id("tr")
@@ -409,7 +409,7 @@ class CareerStore:
             )
             row = connection.execute("SELECT * FROM tailored_resume WHERE id = ?", (resume_id,)).fetchone()
             connection.commit()
-        return self._tailored_resume_from_row(row)
+        return _row_to(TailoredResume, row, "tailored resume", ["is_approved"])
 
     def approve_tailored_resume(self, resume_id: str) -> TailoredResume:
         with closing(self.connect()) as connection:
@@ -421,14 +421,14 @@ class CareerStore:
             if row is None:
                 raise LookupError("tailored resume not found")
             connection.commit()
-        return self._tailored_resume_from_row(row)
+        return _row_to(TailoredResume, row, "tailored resume", ["is_approved"])
 
     def list_tailored_resumes(self, opportunity_id: str) -> list[TailoredResume]:
         with closing(self.connect()) as connection:
             rows = connection.execute(
                 "SELECT * FROM tailored_resume WHERE opportunity_id = ? ORDER BY version DESC", (opportunity_id,)
             ).fetchall()
-        return [self._tailored_resume_from_row(row) for row in rows]
+        return [_row_to(TailoredResume, row, "tailored resume", ["is_approved"]) for row in rows]
 
     def create_workspace(self, opportunity_id: str) -> ApplicationWorkspace:
         ws_id = self._new_id("ws")
@@ -439,28 +439,28 @@ class CareerStore:
             )
             row = connection.execute("SELECT * FROM application_workspace WHERE id = ?", (ws_id,)).fetchone()
             connection.commit()
-        return self._workspace_from_row(row)
+        return _row_to(ApplicationWorkspace, row, "workspace")
 
     def get_workspace(self, workspace_id: str) -> ApplicationWorkspace:
         with closing(self.connect()) as connection:
             row = connection.execute("SELECT * FROM application_workspace WHERE id = ?", (workspace_id,)).fetchone()
             if row is None:
                 raise LookupError("workspace not found")
-        return self._workspace_from_row(row)
+        return _row_to(ApplicationWorkspace, row, "workspace")
 
     def get_workspace_by_opportunity(self, opportunity_id: str) -> ApplicationWorkspace | None:
         with closing(self.connect()) as connection:
             row = connection.execute(
                 "SELECT * FROM application_workspace WHERE opportunity_id = ?", (opportunity_id,)
             ).fetchone()
-        return None if row is None else self._workspace_from_row(row)
+        return None if row is None else _row_to(ApplicationWorkspace, row, "workspace")
 
     def list_workspaces(self) -> list[ApplicationWorkspace]:
         with closing(self.connect()) as connection:
             rows = connection.execute(
                 "SELECT * FROM application_workspace ORDER BY created_at DESC"
             ).fetchall()
-        return [self._workspace_from_row(row) for row in rows]
+        return [_row_to(ApplicationWorkspace, row, "workspace") for row in rows]
 
     def update_workspace_status(self, workspace_id: str, status: str) -> ApplicationWorkspace:
         valid = {"created", "preparing", "ready_for_review", "browser_assisted", "paused", "submission_review", "submitted", "abandoned"}
@@ -475,7 +475,7 @@ class CareerStore:
             if row is None:
                 raise LookupError("workspace not found")
             connection.commit()
-        return self._workspace_from_row(row)
+        return _row_to(ApplicationWorkspace, row, "workspace")
 
     def add_material(self, *, workspace_id: str, kind: str, file_path: str, version: int = 1) -> ApplicationMaterial:
         mat_id = self._new_id("mat")
@@ -486,7 +486,7 @@ class CareerStore:
             )
             row = connection.execute("SELECT * FROM application_material WHERE id = ?", (mat_id,)).fetchone()
             connection.commit()
-        return self._material_from_row(row)
+        return _row_to(ApplicationMaterial, row, "material", ["is_approved"])
 
     def approve_material(self, material_id: str) -> ApplicationMaterial:
         with closing(self.connect()) as connection:
@@ -497,7 +497,7 @@ class CareerStore:
             if row is None:
                 raise LookupError("material not found")
             connection.commit()
-        return self._material_from_row(row)
+        return _row_to(ApplicationMaterial, row, "material", ["is_approved"])
 
     def list_materials(self, workspace_id: str) -> list[ApplicationMaterial]:
         with closing(self.connect()) as connection:
@@ -505,7 +505,7 @@ class CareerStore:
                 "SELECT * FROM application_material WHERE workspace_id = ? ORDER BY created_at DESC",
                 (workspace_id,),
             ).fetchall()
-        return [self._material_from_row(row) for row in rows]
+        return [_row_to(ApplicationMaterial, row, "material", ["is_approved"]) for row in rows]
 
     def add_approval(self, *, workspace_id: str, action: str, is_approved: bool) -> Approval:
         app_id = self._new_id("ap")
@@ -516,14 +516,14 @@ class CareerStore:
             )
             row = connection.execute("SELECT * FROM approval WHERE id = ?", (app_id,)).fetchone()
             connection.commit()
-        return self._approval_from_row(row)
+        return _row_to(Approval, row, "approval", ["is_approved"])
 
     def list_approvals(self, workspace_id: str) -> list[Approval]:
         with closing(self.connect()) as connection:
             rows = connection.execute(
                 "SELECT * FROM approval WHERE workspace_id = ? ORDER BY created_at ASC", (workspace_id,)
             ).fetchall()
-        return [self._approval_from_row(row) for row in rows]
+        return [_row_to(Approval, row, "approval", ["is_approved"]) for row in rows]
 
     def upsert_learning_record(self, user_info_key: str, value: str) -> LearningRecord:
         self._require_text(user_info_key, "user_info_key")
@@ -547,14 +547,14 @@ class CareerStore:
                 )
                 row = connection.execute("SELECT * FROM learning_record WHERE id = ?", (record_id,)).fetchone()
             connection.commit()
-        return self._learning_record_from_row(row)
+        return _row_to(LearningRecord, row, "learning record")
 
     def get_learning_records(self) -> list[LearningRecord]:
         with closing(self.connect()) as connection:
             rows = connection.execute(
                 "SELECT * FROM learning_record ORDER BY occurrences DESC, last_used DESC"
             ).fetchall()
-        return [self._learning_record_from_row(row) for row in rows]
+        return [_row_to(LearningRecord, row, "learning record") for row in rows]
 
     def get_learned_user_info(self) -> dict[str, str]:
         """Return the most-used value per key from learned records."""
@@ -598,84 +598,12 @@ class CareerStore:
         if value not in {"draft", "verified", "deprecated"}:
             raise ValueError("status must be draft, verified, or deprecated")
 
-    @staticmethod
-    def _profile_from_row(row: sqlite3.Row | None) -> UserProfile:
-        if row is None:
-            raise LookupError("user profile was not found")
-        return UserProfile(**dict(row))
 
-    @staticmethod
-    def _knowledge_item_from_row(row: sqlite3.Row | None) -> KnowledgeItem:
-        if row is None:
-            raise LookupError("knowledge item was not found")
-        return KnowledgeItem(**dict(row))
-
-    @staticmethod
-    def _evidence_from_row(row: sqlite3.Row | None) -> Evidence:
-        if row is None:
-            raise LookupError("evidence was not found")
-        return Evidence(**dict(row))
-
-    @staticmethod
-    def _resume_from_row(row: sqlite3.Row | None) -> ResumeRecord:
-        if row is None:
-            raise LookupError("resume was not found")
-        data: dict[str, Any] = dict(row)
-        data["is_active"] = bool(data["is_active"])
-        return ResumeRecord(**data)
-
-    @staticmethod
-    def _role_from_row(row: sqlite3.Row | None) -> RoleTarget:
-        if row is None:
-            raise LookupError("role target was not found")
-        return RoleTarget(**dict(row))
-
-    @staticmethod
-    def _opportunity_from_row(row: sqlite3.Row | None) -> Opportunity:
-        if row is None:
-            raise LookupError("opportunity was not found")
-        return Opportunity(**dict(row))
-
-    @staticmethod
-    def _company_from_row(row: sqlite3.Row | None) -> Company:
-        if row is None:
-            raise LookupError("company was not found")
-        data: dict[str, Any] = dict(row)
-        data["is_blacklisted"] = bool(data["is_blacklisted"])
-        return Company(**data)
-
-    @staticmethod
-    def _tailored_resume_from_row(row: sqlite3.Row | None) -> TailoredResume:
-        if row is None:
-            raise LookupError("tailored resume was not found")
-        data: dict[str, Any] = dict(row)
-        data["is_approved"] = bool(data["is_approved"])
-        return TailoredResume(**data)
-
-    @staticmethod
-    def _workspace_from_row(row: sqlite3.Row | None) -> ApplicationWorkspace:
-        if row is None:
-            raise LookupError("workspace was not found")
-        return ApplicationWorkspace(**dict(row))
-
-    @staticmethod
-    def _material_from_row(row: sqlite3.Row | None) -> ApplicationMaterial:
-        if row is None:
-            raise LookupError("material was not found")
-        data: dict[str, Any] = dict(row)
-        data["is_approved"] = bool(data["is_approved"])
-        return ApplicationMaterial(**data)
-
-    @staticmethod
-    def _approval_from_row(row: sqlite3.Row | None) -> Approval:
-        if row is None:
-            raise LookupError("approval was not found")
-        data: dict[str, Any] = dict(row)
-        data["is_approved"] = bool(data["is_approved"])
-        return Approval(**data)
-
-    @staticmethod
-    def _learning_record_from_row(row: sqlite3.Row | None) -> LearningRecord:
-        if row is None:
-            raise LookupError("learning record was not found")
-        return LearningRecord(**dict(row))
+def _row_to(cls: type, row: sqlite3.Row | None, name: str, bool_fields: list[str] | None = None) -> Any:
+    if row is None:
+        raise LookupError(f"{name} was not found")
+    data: dict[str, Any] = dict(row)
+    if bool_fields:
+        for f in bool_fields:
+            data[f] = bool(data[f])
+    return cls(**data)

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -15,13 +14,11 @@ from uuid import uuid4
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from .ai import create_provider, extract_json
+from .ai import create_provider
 from .browser import BrowserSession
 from .discovery import discover_role
-from .domain import Opportunity
-from .prompts import opportunity_analysis
 from .resume import (
-    LaTeXCompiler,
+    compile_latex,
     cover_letter_to_latex,
     generate_cover_letter,
     generate_tailored_resume,
@@ -46,27 +43,15 @@ def _render(name: str, **kwargs: Any) -> str:
     return _templates.get_template(name).render(**kwargs)
 
 
-def _load_json(body: bytes) -> dict[str, str]:
-    payload = json.loads(body.decode("utf-8") or "{}")
-    return {str(k): str(v) for k, v in payload.items() if v is not None}
-
-
-def _load_form(body: bytes) -> dict[str, str]:
-    form = parse_qs(body.decode("utf-8"))
-    return {k: v[0] for k, v in form.items() if v}
-
-
-def _read_body(handler: BaseHTTPRequestHandler) -> bytes:
-    length = int(handler.headers.get("Content-Length", "0") or "0")
-    return handler.rfile.read(length)
-
-
 def _parse_payload(handler: BaseHTTPRequestHandler) -> dict[str, str]:
-    body = _read_body(handler)
+    length = int(handler.headers.get("Content-Length", "0") or "0")
+    body = handler.rfile.read(length)
     ct = handler.headers.get("Content-Type", "")
     if ct.startswith("application/json"):
-        return _load_json(body)
-    return _load_form(body)
+        payload = json.loads(body.decode("utf-8") or "{}")
+        return {str(k): str(v) for k, v in payload.items() if v is not None}
+    form = parse_qs(body.decode("utf-8"))
+    return {k: v[0] for k, v in form.items() if v}
 
 
 def serialize_opportunity(opp: object) -> dict[str, object]:
@@ -357,8 +342,7 @@ def create_handler(database_path: str | Path, data_dir: str | Path) -> type[Base
             tex_path = tailor_dir / f"{stem}.tex"
             tex_path.write_text(tex_content, encoding="utf-8")
 
-            compiler = LaTeXCompiler(tailor_dir)
-            pdf_path = compiler.compile(tex_content, stem=stem)
+            pdf_path = compile_latex(tex_content, tailor_dir, stem=stem)
 
             existing = store.list_tailored_resumes(opp_id)
             version = (existing[0].version + 1) if existing else 1
@@ -484,8 +468,7 @@ def create_handler(database_path: str | Path, data_dir: str | Path) -> type[Base
             tex_content = cover_letter_to_latex(body, company=opp.company, job_title=opp.title)
             tex_path = cl_dir / f"{stem}.tex"
             tex_path.write_text(tex_content, encoding="utf-8")
-            compiler = LaTeXCompiler(cl_dir)
-            pdf_path = compiler.compile(tex_content, stem=stem)
+            pdf_path = compile_latex(tex_content, cl_dir, stem=stem)
             store.add_material(workspace_id=ws_id, kind="cover_letter", file_path=str(tex_path))
 
             pdf_link = f'<a href="/files/{pdf_path.relative_to(data_root)}" class="btn btn-sm" download>Download PDF</a>' if pdf_path else ''
@@ -538,6 +521,15 @@ def create_handler(database_path: str | Path, data_dir: str | Path) -> type[Base
                 f'</div></div>'
             )
 
+        def _learn_from_session(self, session: BrowserSession) -> None:
+            for matched in session.fields_filled:
+                val = session.user_info.get(matched, "")
+                if val:
+                    try:
+                        store.upsert_learning_record(matched, val)
+                    except Exception:
+                        pass
+
         def _handle_browser_start(self, ws_id: str) -> None:
             try:
                 ws = store.get_workspace(ws_id)
@@ -557,13 +549,7 @@ def create_handler(database_path: str | Path, data_dir: str | Path) -> type[Base
             _browser_sessions[ws_id] = session
             session.detect_fields()
             session.fill_known_fields()
-            for matched in session.fields_filled:
-                val = session.user_info.get(matched, "")
-                if val:
-                    try:
-                        store.upsert_learning_record(matched, val)
-                    except Exception:
-                        pass
+            self._learn_from_session(session)
             session.screenshot("first_load")
             store.add_material(workspace_id=ws_id, kind="screenshot", file_path=session.screenshots[-1])
             self._html(self._browser_status_html(ws_id))
@@ -574,13 +560,7 @@ def create_handler(database_path: str | Path, data_dir: str | Path) -> type[Base
                 return self._json({"error": "browser not started"}, HTTPStatus.BAD_REQUEST)
             session.detect_fields()
             session.fill_known_fields()
-            for matched in session.fields_filled:
-                val = session.user_info.get(matched, "")
-                if val:
-                    try:
-                        store.upsert_learning_record(matched, val)
-                    except Exception:
-                        pass
+            self._learn_from_session(session)
             session.screenshot("after_fill")
             store.add_material(workspace_id=ws_id, kind="screenshot", file_path=session.screenshots[-1])
             self._html(self._browser_status_html(ws_id))

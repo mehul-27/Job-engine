@@ -13,27 +13,24 @@ from .pdf_utils import extract_text
 from .prompts import cover_letter, resume_tailor
 
 
-class LaTeXCompiler:
-    def __init__(self, output_dir: str | Path) -> None:
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-
-    def compile(self, tex_content: str, stem: str = "resume") -> Path | None:
-        tex_path = self.output_dir / f"{stem}.tex"
-        tex_path.write_text(tex_content, encoding="utf-8")
-        try:
-            result = subprocess.run(
-                ["pdflatex", "-interaction=nonstopmode", "-output-directory", str(self.output_dir), str(tex_path)],
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
-            pdf_path = self.output_dir / f"{stem}.pdf"
-            if pdf_path.exists():
-                return pdf_path
-            return None
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            return None
+def compile_latex(tex_content: str, output_dir: str | Path, stem: str = "resume") -> Path | None:
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    tex_path = output_dir / f"{stem}.tex"
+    tex_path.write_text(tex_content, encoding="utf-8")
+    try:
+        result = subprocess.run(
+            ["pdflatex", "-interaction=nonstopmode", "-output-directory", str(output_dir), str(tex_path)],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        pdf_path = output_dir / f"{stem}.pdf"
+        if pdf_path.exists():
+            return pdf_path
+        return None
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
 
 
 def generate_tailored_resume(
@@ -43,7 +40,6 @@ def generate_tailored_resume(
     master_resume_path: str | Path,
     knowledge_items: list[dict],
     ai_provider: AIProvider,
-    compiler: LaTeXCompiler | None = None,
 ) -> dict:
     resume_text = extract_text(master_resume_path)
     kb_text = "\n\n".join(
