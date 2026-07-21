@@ -1,0 +1,32 @@
+<div class="grid-2">
+<form class="panel form-grid" hx-post="/api/companies" hx-target="#company-list" hx-swap="beforeend" hx-on::after-request="this.reset()">
+<p class="eyebrow">Company</p>
+<h2>Add or update</h2>
+<input name="name" placeholder="Company name" required>
+<input name="url" placeholder="Website URL">
+<textarea name="notes" placeholder="Notes"></textarea>
+<label><input type="checkbox" name="is_blacklisted" value="1"> Blacklist</label>
+<button class="btn" type="submit">Save</button>
+</form>
+<aside class="panel">
+<p class="eyebrow">Info</p>
+<h2>Company preferences</h2>
+<p>Blacklisted companies are filtered from opportunities. Add notes to remember past applications or research.</p>
+</aside>
+</div>
+
+<section class="panel" style="margin-top:16px">
+<h2>Companies</h2>
+<div id="company-list" class="stack">
+{% for c in companies %}
+<div class="row">
+<div>
+<div class="name">{{ c.name }}{% if c.is_blacklisted %}<span class="badge" style="border-color:var(--danger);color:var(--danger)">blacklisted</span>{% endif %}</div>
+<div class="detail">{{ c.url or "" }}{% if c.notes %} | {{ c.notes }}{% endif %}</div>
+</div>
+</div>
+{% else %}
+<p class="empty">No companies tracked yet.</p>
+{% endfor %}
+</div>
+</section>

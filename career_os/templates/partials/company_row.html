@@ -1,0 +1,6 @@
+<div class="row">
+<div>
+<div class="name">{{ c.name }}{% if c.is_blacklisted %}<span class="badge" style="border-color:var(--danger);color:var(--danger)">blacklisted</span>{% endif %}</div>
+<div class="detail">{{ c.url or "" }}{% if c.notes %} | {{ c.notes }}{% endif %}</div>
+</div>
+</div>

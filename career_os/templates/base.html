@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Career OS</title>
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<style>
+:root { --ink:#17140f; --muted:#746c60; --panel:#fffaf0; --line:#d8cdb9; --accent:#0d6b5f; --accent-dark:#084a42; --danger:#b13e3e; }
+* { box-sizing:border-box; }
+body { margin:0; min-height:100vh; color:var(--ink); background:linear-gradient(135deg,#f7f2e7 0%,#eee5d4 100%); font-family:Georgia,'Times New Roman',serif; }
+button,input,select,textarea { font:inherit; }
+.app-shell { display:grid; grid-template-columns:240px 1fr; min-height:100vh; }
+.sidebar { border-right:1px solid var(--line); padding:24px 18px; background:#191713; color:#f7f0e3; }
+.brand { display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.04em; margin-bottom:34px; }
+.mark { display:grid; place-items:center; width:38px; height:38px; border:1px solid #f7f0e3; }
+.nav-items { display:grid; gap:8px; }
+.nav-item { text-align:left; border:1px solid #3b3429; background:transparent; color:#c9bfae; padding:10px 13px; cursor:pointer; text-decoration:none; font-size:14px; }
+.nav-item.active, .nav-item:hover { background:#f7f0e3; color:#191713; }
+.nav-item:disabled { opacity:.45; cursor:not-allowed; }
+.workspace { padding:28px; min-width:0; }
+.topbar { display:flex; justify-content:space-between; align-items:start; margin-bottom:22px; flex-wrap:wrap; gap:10px; }
+h1,h2,p { margin-top:0; }
+h1 { font-size:36px; line-height:1; margin-bottom:0; }
+h2 { font-size:20px; margin-bottom:8px; }
+.eyebrow { color:var(--accent); text-transform:uppercase; letter-spacing:.14em; font-size:11px; font-weight:700; margin-bottom:4px; }
+.status-pill, .panel { border:1px solid var(--line); background:rgba(255,250,240,.9); }
+.status-pill { padding:7px 12px; min-width:80px; text-align:center; font-size:13px; }
+.panel { box-shadow:0 12px 30px rgba(67,49,24,.06); padding:18px; }
+.grid-2 { display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:16px; }
+.meta-grid { display:grid; grid-template-columns:120px 1fr; gap:8px 12px; margin:14px 0; color:var(--muted); font-size:13px; }
+.meta-grid dt { color:var(--ink); font-weight:700; }
+.meta-grid dd { margin:0; word-break:break-all; }
+.stack { display:grid; gap:8px; }
+.row { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px; border:1px solid var(--line); background:rgba(255,250,240,.6); }
+.row .name { font-weight:700; }
+.row .detail { font-size:12px; color:var(--muted); }
+.badge { display:inline-block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; padding:2px 6px; border:1px solid currentColor; margin-left:6px; }
+.btn { border:0; background:var(--accent); color:white; padding:8px 14px; cursor:pointer; font-size:13px; }
+.btn:hover { background:var(--accent-dark); }
+.btn-sm { padding:5px 10px; font-size:12px; }
+.btn-outline { background:transparent; border:1px solid var(--accent); color:var(--accent); }
+.btn-outline:hover { background:var(--accent); color:white; }
+.btn-danger { background:var(--danger); }
+.btn-danger:hover { background:#8c2e2e; }
+.form-grid { display:grid; gap:10px; }
+.form-grid input,.form-grid select,.form-grid textarea { padding:8px 10px; border:1px solid var(--line); background:white; }
+.form-grid textarea { min-height:80px; resize:vertical; }
+.upload-box { border:1px dashed var(--accent); padding:16px; display:grid; gap:12px; background:#f7f2e8; }
+.tag { display:inline-block; font-size:11px; padding:2px 6px; border:1px solid var(--line); margin:2px; }
+.empty { color:var(--muted); font-style:italic; font-size:14px; }
+.flex { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.section-title { border-bottom:1px solid var(--line); padding-bottom:8px; margin-bottom:12px; font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+pre { white-space:pre-wrap; font-size:12px; background:#f7f2e7; padding:12px; border:1px solid var(--line); max-height:400px; overflow:auto; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar">
+<div class="brand"><span class="mark">CO</span><span>Career OS</span></div>
+<nav class="nav-items">
+<a href="/" class="nav-item" hx-get="/hx/dashboard" hx-target="#workspace" hx-push-url="true">Dashboard</a>
+<a href="/resume" class="nav-item" hx-get="/hx/resume" hx-target="#workspace" hx-push-url="true">Resume</a>
+<a href="/roles" class="nav-item" hx-get="/hx/roles" hx-target="#workspace" hx-push-url="true">Roles</a>
+<a href="/opportunities" class="nav-item" hx-get="/hx/opportunities" hx-target="#workspace" hx-push-url="true">Opportunities</a>
+<a href="/companies" class="nav-item" hx-get="/hx/companies" hx-target="#workspace" hx-push-url="true">Companies</a>
+<a href="/workspaces" class="nav-item" hx-get="/hx/workspaces" hx-target="#workspace" hx-push-url="true">Workspaces</a>
+</nav>
+</aside>
+<main class="workspace">
+<header class="topbar">
+<div>
+<p class="eyebrow" id="view-eyebrow">Career OS</p>
+<h1 id="view-title">Dashboard</h1>
+</div>
+<div id="server-status" class="status-pill">Ready</div>
+</header>
+<div id="workspace">
+{% block content %}{% endblock %}
+</div>
+</main>
+</div>
+<script>
+document.body.addEventListener('htmx:afterRequest', function(evt) {
+    if (evt.detail.failed) {
+        document.getElementById('server-status').textContent = 'Error';
+    }
+});
+</script>
+</body>
+</html>

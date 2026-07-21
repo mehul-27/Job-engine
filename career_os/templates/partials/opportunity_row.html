@@ -1,0 +1,18 @@
+<div class="row">
+<div>
+<div class="name">{{ opp.title }} <span class="badge">{{ opp.status }}</span></div>
+<div class="detail">{{ opp.company }} | {{ opp.location or "Location unknown" }}</div>
+</div>
+<div class="flex">
+<a href="{{ opp.url }}" target="_blank" class="btn btn-sm btn-outline">Open</a>
+{% if opp.status == "new" or opp.status == "blacklisted" %}
+<button class="btn btn-sm btn-outline" hx-post="/api/opportunities/{{ opp.id }}/status" hx-vals='{"status":"saved"}' hx-target="closest .row" hx-swap="outerHTML">Save</button>
+<button class="btn btn-sm btn-outline" hx-post="/api/opportunities/{{ opp.id }}/status" hx-vals='{"status":"skipped"}' hx-target="closest .row" hx-swap="outerHTML">Skip</button>
+{% endif %}
+{% if opp.status != "blacklisted" %}
+<button class="btn btn-sm btn-danger" hx-post="/api/opportunities/{{ opp.id }}/status" hx-vals='{"status":"blacklisted"}' hx-target="closest .row" hx-swap="outerHTML">Block</button>
+{% endif %}
+<button class="btn btn-sm" hx-post="/api/opportunities/{{ opp.id }}/tailor" hx-target="#tailor-output-{{ opp.id }}" hx-swap="innerHTML">Tailor</button>
+</div>
+</div>
+<div id="tailor-output-{{ opp.id }}"></div>

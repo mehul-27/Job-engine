@@ -1,0 +1,41 @@
+<div class="grid-2">
+<form class="panel form-grid" hx-post="/api/roles" hx-target="#role-list" hx-swap="afterbegin" hx-on::after-request="this.reset()">
+<p class="eyebrow">Target role</p>
+<h2>Define job search</h2>
+<input name="title" placeholder="Role title, e.g. Software Engineer Intern" required>
+<input name="keywords" placeholder="Keywords, comma separated" required>
+<input name="location" placeholder="Location, e.g. India or Remote">
+<select name="remote_preference">
+<option value="any">Any work mode</option>
+<option value="remote">Remote only</option>
+<option value="hybrid">Hybrid</option>
+<option value="onsite">Onsite</option>
+</select>
+<input name="job_type" placeholder="Job type, e.g. internship">
+<input name="source_url" placeholder="JSON source URL" value="https://remoteok.com/api">
+<button class="btn" type="submit">Save Role</button>
+</form>
+<aside class="panel">
+<p class="eyebrow">Discovery</p>
+<h2>Public JSON feeds</h2>
+<p>Discovers listings from public JSON APIs. Filters by keywords and remote preference. No scraping or login required.</p>
+</aside>
+</div>
+
+<section class="panel" style="margin-top:16px">
+<h2>Saved Roles</h2>
+<div id="role-list" class="stack">
+{% for r in roles %}
+<div class="row">
+<div>
+<div class="name">{{ r.title }}</div>
+<div class="detail">{{ r.keywords }} | {{ r.remote_preference }} | {{ r.source_url }}</div>
+</div>
+<button class="btn btn-sm" hx-post="/api/roles/{{ r.id }}/discover" hx-target="#discover-result" hx-swap="innerHTML" hx-on::after-request="setTimeout(function(){ window.location='/opportunities'; }, 500)">Discover</button>
+</div>
+{% else %}
+<p class="empty">No roles defined yet.</p>
+{% endfor %}
+</div>
+<div id="discover-result"></div>
+</section>

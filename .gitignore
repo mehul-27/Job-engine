@@ -7,8 +7,12 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .coverage
+*.egg-info/
 
 # Local runtime data
 *.sqlite
 *.sqlite3
 career-os-data/
+
+# Environment secrets
+.env

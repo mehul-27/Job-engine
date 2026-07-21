@@ -1,0 +1,15 @@
+<div class="stack">
+{% for ws in workspaces %}
+<div class="row">
+<div>
+<div class="name">{{ ws.opportunity_title or "Opportunity" }} <span class="badge">{{ ws.status | replace('_', ' ') }}</span></div>
+<div class="detail">{{ ws.opportunity_company or "" }} | Created {{ ws.created_at[:10] }}</div>
+</div>
+<div class="flex">
+<a href="/workspace/{{ ws.id }}" class="btn btn-sm" hx-get="/hx/workspace/{{ ws.id }}" hx-target="#workspace" hx-push-url="true">Open</a>
+</div>
+</div>
+{% else %}
+<p class="empty">No application workspaces yet. Apply to an opportunity to start one.</p>
+{% endfor %}
+</div>

@@ -1,0 +1,63 @@
+<div class="grid-2">
+<div class="panel">
+<p class="eyebrow">Active Resume</p>
+<h2>{{ active_resume.filename if active_resume else "No resume" }}</h2>
+{% if active_resume %}
+<div class="meta-grid">
+<dt>Path</dt><dd>{{ active_resume.file_path }}</dd>
+<dt>Checksum</dt><dd>{{ active_resume.checksum_sha256[:12] if active_resume.checksum_sha256 else "" }}</dd>
+</div>
+{% endif %}
+</div>
+<div class="panel">
+<p class="eyebrow">Quick Stats</p>
+<h2>{{ opportunity_count }} opportunities</h2>
+<div class="meta-grid">
+<dt>New</dt><dd>{{ stats.new }}</dd>
+<dt>Saved</dt><dd>{{ stats.saved }}</dd>
+<dt>Applying</dt><dd>{{ stats.applying }}</dd>
+</div>
+</div>
+</div>
+
+<section class="panel" style="margin-top:16px">
+<p class="eyebrow">Recent Opportunities</p>
+{% if recent_opportunities %}
+<div class="stack">
+{% for opp in recent_opportunities %}
+<div class="row">
+<div>
+<div class="name">{{ opp.title }} <span class="badge">{{ opp.status }}</span></div>
+<div class="detail">{{ opp.company }} | {{ opp.location or "Location unknown" }}</div>
+</div>
+<div class="flex">
+<a href="{{ opp.url }}" target="_blank" class="btn btn-sm btn-outline">Open</a>
+<button class="btn btn-sm" hx-post="/api/opportunities/{{ opp.id }}/tailor" hx-target="#tailor-result" hx-swap="innerHTML">Tailor</button>
+</div>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<p class="empty">No opportunities discovered yet. Define a role and run discovery.</p>
+{% endif %}
+<div id="tailor-result"></div>
+</section>
+
+<section class="panel" style="margin-top:16px">
+<p class="eyebrow">Active Workspaces</p>
+{% if workspaces %}
+<div class="stack">
+{% for ws in workspaces %}
+<div class="row">
+<div>
+<div class="name">{{ ws.title }} <span class="badge">{{ ws.status | replace('_', ' ') }}</span></div>
+<div class="detail">{{ ws.company }}</div>
+</div>
+<a href="/workspace/{{ ws.id }}" class="btn btn-sm" hx-get="/hx/workspace/{{ ws.id }}" hx-target="#workspace" hx-push-url="true">Open</a>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<p class="empty">No active application workspaces.</p>
+{% endif %}
+</section>

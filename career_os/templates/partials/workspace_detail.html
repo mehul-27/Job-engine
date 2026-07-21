@@ -1,0 +1,81 @@
+<div class="grid-2">
+<div class="panel">
+<p class="eyebrow">Application Workspace</p>
+<h2>{{ opp.title }}</h2>
+<div class="meta-grid">
+<dt>Company</dt><dd>{{ opp.company }}</dd>
+<dt>Status</dt><dd><span class="badge">{{ ws.status | replace('_', ' ') }}</span></dd>
+<dt>Created</dt><dd>{{ ws.created_at[:19] }}</dd>
+<dt>Updated</dt><dd>{{ ws.updated_at[:19] }}</dd>
+</div>
+<a href="{{ opp.url }}" target="_blank" class="btn btn-sm btn-outline">View Listing</a>
+</div>
+
+<div class="panel">
+<p class="eyebrow">Workflow</p>
+<h2>Actions</h2>
+<div class="stack" style="margin-top:8px">
+{% if ws.status == "created" %}
+<button class="btn" hx-post="/api/workspace/{{ ws.id }}/advance" hx-vals='{"status":"preparing"}' hx-target="closest .grid-2" hx-swap="outerHTML">Start Preparing</button>
+<button class="btn btn-danger" hx-post="/api/workspace/{{ ws.id }}/advance" hx-vals='{"status":"abandoned"}' hx-target="closest .grid-2" hx-swap="outerHTML">Abandon</button>
+{% elif ws.status == "preparing" %}
+<button class="btn" hx-post="/api/workspace/{{ ws.id }}/advance" hx-vals='{"status":"ready_for_review"}' hx-target="closest .grid-2" hx-swap="outerHTML">Mark Ready for Review</button>
+<button class="btn btn-outline" hx-post="/api/workspace/{{ ws.id }}/cover-letter" hx-target="#cl-result" hx-swap="innerHTML">Generate Cover Letter</button>
+{% elif ws.status == "ready_for_review" %}
+<button class="btn" hx-post="/api/workspace/{{ ws.id }}/advance" hx-vals='{"status":"browser_assisted"}' hx-target="closest .grid-2" hx-swap="outerHTML">Start Browser Assistance</button>
+<button class="btn btn-outline" hx-post="/api/workspace/{{ ws.id }}/browser-start" hx-target="#browser-status" hx-swap="innerHTML">Launch Browser</button>
+{% elif ws.status == "browser_assisted" %}
+<button class="btn btn-outline" hx-post="/api/workspace/{{ ws.id }}/advance" hx-vals='{"status":"paused"}' hx-target="closest .grid-2" hx-swap="outerHTML">Pause</button>
+<button class="btn" hx-post="/api/workspace/{{ ws.id }}/advance" hx-vals='{"status":"submission_review"}' hx-target="closest .grid-2" hx-swap="outerHTML">Ready for Submission</button>
+<div id="browser-status"></div>
+{% elif ws.status == "paused" %}
+<button class="btn" hx-post="/api/workspace/{{ ws.id }}/advance" hx-vals='{"status":"browser_assisted"}' hx-target="closest .grid-2" hx-swap="outerHTML">Resume</button>
+{% elif ws.status == "submission_review" %}
+<button class="btn" hx-post="/api/workspace/{{ ws.id }}/advance" hx-vals='{"status":"submitted"}' hx-target="closest .grid-2" hx-swap="outerHTML">Confirm Submit</button>
+<button class="btn btn-outline" hx-post="/api/workspace/{{ ws.id }}/advance" hx-vals='{"status":"browser_assisted"}' hx-target="closest .grid-2" hx-swap="outerHTML">Back to Browser</button>
+{% endif %}
+</div>
+</div>
+</div>
+
+<div class="panel" style="margin-top:16px">
+<p class="eyebrow">Materials</p>
+<h2>Generated Documents</h2>
+{% if materials %}
+<div class="stack">
+{% for m in materials %}
+<div class="row">
+<div>
+<div class="name">{{ m.kind | replace('_', ' ') }} v{{ m.version }}{% if m.is_approved %}<span class="badge" style="border-color:var(--accent);color:var(--accent)">approved</span>{% endif %}</div>
+<div class="detail">{{ m.file_path }}</div>
+</div>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<p class="empty">No materials generated yet.</p>
+{% endif %}
+<div id="cl-result"></div>
+</div>
+
+<div class="panel" style="margin-top:12px">
+<p class="eyebrow">Approvals</p>
+<h2>Approval History</h2>
+{% if approvals %}
+<div class="stack">
+{% for a in approvals %}
+<div class="row">
+<div>
+<div class="name">{{ a.action | replace('_', ' ') }}</div>
+<div class="detail">{{ a.created_at[:19] }}</div>
+</div>
+<span class="badge" style="border-color:{% if a.is_approved %}var(--accent){% else %}var(--danger){% endif %};color:{% if a.is_approved %}var(--accent){% else %}var(--danger){% endif %}">
+{% if a.is_approved %}approved{% else %}denied{% endif %}
+</span>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<p class="empty">No approvals recorded.</p>
+{% endif %}
+</div>

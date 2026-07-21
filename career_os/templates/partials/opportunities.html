@@ -1,0 +1,37 @@
+<div class="flex" style="margin-bottom:12px">
+<span class="eyebrow" style="margin:0">Filter:</span>
+<button class="btn btn-sm btn-outline" hx-get="/hx/opportunities?status=all" hx-target="#opp-list">All</button>
+<button class="btn btn-sm btn-outline" hx-get="/hx/opportunities?status=new" hx-target="#opp-list">New</button>
+<button class="btn btn-sm btn-outline" hx-get="/hx/opportunities?status=saved" hx-target="#opp-list">Saved</button>
+<button class="btn btn-sm btn-outline" hx-get="/hx/opportunities?status=applying" hx-target="#opp-list">Applying</button>
+</div>
+
+<section class="panel">
+<h2>Opportunities</h2>
+<div id="opp-list" class="stack">
+{% for opp in opportunities %}
+<div class="row">
+<div>
+<div class="name">{{ opp.title }} <span class="badge">{{ opp.status }}</span></div>
+<div class="detail">{{ opp.company }} | {{ opp.location or "Location unknown" }}</div>
+</div>
+<div class="flex">
+<a href="{{ opp.url }}" target="_blank" class="btn btn-sm btn-outline">Open</a>
+{% if opp.status == "new" %}
+<button class="btn btn-sm btn-outline" hx-post="/api/opportunities/{{ opp.id }}/status" hx-vals='{"status":"saved"}' hx-target="closest .row" hx-swap="outerHTML">Save</button>
+<button class="btn btn-sm btn-outline" hx-post="/api/opportunities/{{ opp.id }}/status" hx-vals='{"status":"skipped"}' hx-target="closest .row" hx-swap="outerHTML">Skip</button>
+{% endif %}
+{% if opp.status != "blacklisted" %}
+<button class="btn btn-sm btn-danger" hx-post="/api/opportunities/{{ opp.id }}/status" hx-vals='{"status":"blacklisted"}' hx-target="closest .row" hx-swap="outerHTML">Block</button>
+{% endif %}
+<button class="btn btn-sm" hx-post="/api/opportunities/{{ opp.id }}/tailor" hx-target="#tailor-output-{{ opp.id }}" hx-swap="innerHTML">Tailor</button>
+<button class="btn btn-sm" hx-post="/api/opportunities/{{ opp.id }}/apply" hx-target="#apply-output-{{ opp.id }}" hx-swap="innerHTML">Apply</button>
+</div>
+</div>
+<div id="tailor-output-{{ opp.id }}"></div>
+<div id="apply-output-{{ opp.id }}"></div>
+{% else %}
+<p class="empty">No opportunities discovered. Define a role and run discovery.</p>
+{% endfor %}
+</div>
+</section>

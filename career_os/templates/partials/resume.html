@@ -1,0 +1,44 @@
+<div class="grid-2">
+<div class="panel">
+<p class="eyebrow">Active resume</p>
+{% if active_resume %}
+<h2>{{ active_resume.filename }}</h2>
+<div class="meta-grid">
+<dt>Path</dt><dd>{{ active_resume.file_path }}</dd>
+<dt>Checksum</dt><dd>{{ active_resume.checksum_sha256[:12] }}</dd>
+<dt>Added</dt><dd>{{ active_resume.created_at }}</dd>
+</div>
+{% else %}
+<h2>No resume registered</h2>
+<p class="empty">Upload a resume file to enable tailoring.</p>
+{% endif %}
+<form class="upload-box" hx-encoding="multipart/form-data" hx-post="/api/resumes" hx-target="#resume-list" hx-swap="afterbegin" hx-on::after-request="this.reset()">
+<input name="resume" type="file" required>
+<button class="btn" type="submit">Register Resume</button>
+</form>
+</div>
+<aside class="panel">
+<p class="eyebrow">How it works</p>
+<h2>Resume stays unchanged</h2>
+<p>Career OS stores your resume as-is. Tailoring generates <em>new</em> versioned files. Master resume never modified.</p>
+</aside>
+</div>
+
+<section class="panel" style="margin-top:16px">
+<h2>Resume History</h2>
+<div id="resume-list" class="stack">
+{% for r in resumes %}
+<div class="row">
+<div>
+<div class="name">{{ r.filename }}{% if r.is_active %}<span class="badge">active</span>{% endif %}</div>
+<div class="detail">{{ r.file_path }}</div>
+</div>
+{% if not r.is_active %}
+<button class="btn btn-sm btn-outline" hx-post="/api/resumes/{{ r.id }}/active" hx-target="body" hx-swap="beforeend">Make active</button>
+{% endif %}
+</div>
+{% else %}
+<p class="empty">No resume history.</p>
+{% endfor %}
+</div>
+</section>

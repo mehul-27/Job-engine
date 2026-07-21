@@ -1,0 +1,21 @@
+<div class="panel" style="margin-top:8px;border-left:3px solid var(--accent);">
+<p class="eyebrow">Tailored Resume v{{ version }}</p>
+{% if pdf_path %}
+<div class="flex">
+<a href="/files/{{ pdf_path }}" class="btn btn-sm" download>Download PDF</a>
+<a href="/files/{{ tex_path }}" class="btn btn-sm btn-outline" download>Download .tex</a>
+</div>
+{% else %}
+<p class="empty">PDF generation requires LaTeX (pdflatex). .tex file available.</p>
+<a href="/files/{{ tex_path }}" class="btn btn-sm btn-outline" download>Download .tex</a>
+{% endif %}
+{% if not is_approved %}
+<button class="btn btn-sm" style="margin-top:8px" hx-post="/api/tailored/{{ resume_id }}/approve" hx-target="closest .panel" hx-swap="outerHTML">Approve</button>
+{% else %}
+<span class="badge" style="border-color:var(--accent);color:var(--accent)">approved</span>
+{% endif %}
+<details style="margin-top:8px">
+<summary style="cursor:pointer;font-size:12px;color:var(--muted)">Provenance</summary>
+<pre>{{ provenance }}</pre>
+</details>
+</div>
